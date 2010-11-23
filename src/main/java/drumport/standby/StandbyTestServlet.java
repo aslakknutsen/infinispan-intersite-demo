@@ -16,63 +16,78 @@
  */
 package drumport.standby;
 
-import org.infinispan.Cache;
-import org.infinispan.container.entries.ImmortalCacheEntry;
-import org.infinispan.marshall.Marshaller;
-import org.infinispan.marshall.VersionAwareMarshaller;
-import org.infinispan.marshall.jboss.GenericJBossMarshaller;
-import org.infinispan.server.core.CacheValue;
-import org.infinispan.util.ByteArrayKey;
+import java.io.IOException;
 
-import javax.annotation.Resource;
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+
+import org.infinispan.Cache;
+import org.infinispan.container.entries.ImmortalCacheEntry;
+import org.infinispan.marshall.Marshaller;
+import org.infinispan.server.core.CacheValue;
+import org.infinispan.util.ByteArrayKey;
 
 /**
  */
 public class StandbyTestServlet extends HttpServlet
 {
-   @Resource(name = "name") String name;
+   private static final long serialVersionUID = 1L;
 
-   @Inject
-   StandbyCacheContainerBean standbyCacheContainerBean;
+   @Inject 
+   private Cache<String, Integer> cache;
 
+   @Inject 
+   private Marshaller marshaller; 
+   
+   @Override
+   public void init() throws ServletException
+   {
+      cache.getVersion();
+      marshaller.isMarshallable(new Object());
+   }
+   
    @Override
    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
    {
       String key = "counter";
-      Cache cache = standbyCacheContainerBean.getCache();
-      Integer counter = cacheGet(cache, key);
-      if (counter != null) {
-         Integer newCounter = counter.intValue() + 1;
-         cachePut(cache, key, newCounter);
-         response.getWriter().append(newCounter.toString());
+      try
+      {
+         Integer counter = cacheGet(cache, key);
+         if (counter != null) {
+            Integer newCounter = counter.intValue() + 1;
+            cachePut(cache, key, newCounter);
+            response.getWriter().append(newCounter.toString());
+         }
+      }
+      catch (Exception e)
+      {
+         throw new ServletException(e);
       }
    }
    
-   private Integer cacheGet(Cache cache, String key) throws IOException {
+   private Integer cacheGet(Cache cache, String key) throws Exception {
       ByteArrayKey cacheKey = marshallKey(key);
       CacheValue cacheValue = (CacheValue) cache.get(cacheKey);
       byte[] value = cacheValue.data();
       try {
          // RemoteCacheStore stores ImmortalCacheEntry, not just the value
-         ImmortalCacheEntry entry = (ImmortalCacheEntry) standbyCacheContainerBean.getMarshaller().objectFromByteBuffer(value);
+         ImmortalCacheEntry entry = (ImmortalCacheEntry) marshaller.objectFromByteBuffer(value);
          return (Integer) entry.getValue();
       } catch (ClassNotFoundException e) {
          throw new RuntimeException(e);
       }
    }
 
-   private void cachePut(Cache cache, String key, Integer value) throws IOException {
+   private void cachePut(Cache cache, String key, Integer value) throws Exception {
       ByteArrayKey cacheKey = marshallKey(key);
       CacheValue cacheValue = (CacheValue) cache.get(cacheKey);
       ImmortalCacheEntry entry = null;
       try {
-         entry = (ImmortalCacheEntry) standbyCacheContainerBean.getMarshaller().objectFromByteBuffer(cacheValue.data());
+         entry = (ImmortalCacheEntry) marshaller.objectFromByteBuffer(cacheValue.data());
       } catch (ClassNotFoundException e) {
          throw new RuntimeException(e);
       }
@@ -82,12 +97,12 @@ public class StandbyTestServlet extends HttpServlet
       cache.put(cacheKey, newCacheValue);
    }
 
-   private ByteArrayKey marshallKey(String key) throws IOException {
-      byte[] keyBytes = standbyCacheContainerBean.getMarshaller().objectToByteBuffer(key);
+   private ByteArrayKey marshallKey(String key) throws Exception {
+      byte[] keyBytes = marshaller.objectToByteBuffer(key);
       return new ByteArrayKey(keyBytes);
    }
 
-   private byte[] marshallValue(ImmortalCacheEntry entry) throws IOException {
-      return standbyCacheContainerBean.getMarshaller().objectToByteBuffer(entry);
+   private byte[] marshallValue(ImmortalCacheEntry entry) throws Exception {
+      return marshaller.objectToByteBuffer(entry);
    }
 }

@@ -18,22 +18,13 @@
 
    <servlet>
       <servlet-name>TestServlet</servlet-name>
-      <servlet-class>drumport.TestServlet</servlet-class>
+      <servlet-class>drumport.client.TestServlet</servlet-class>
+      <load-on-startup>1</load-on-startup>
    </servlet>
 
    <servlet-mapping>
       <servlet-name>TestServlet</servlet-name>
       <url-pattern>/Test</url-pattern>
-   </servlet-mapping>
-
-   <servlet>
-      <servlet-name>ServletTestRunner</servlet-name>
-      <servlet-class>org.jboss.arquillian.protocol.servlet_3.ServletTestRunner</servlet-class>
-   </servlet>
-
-   <servlet-mapping>
-      <servlet-name>ServletTestRunner</servlet-name>
-      <url-pattern>/ArquillianServletRunner</url-pattern>
    </servlet-mapping>
 
    <resource-env-ref>

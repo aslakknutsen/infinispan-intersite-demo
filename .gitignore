@@ -2,3 +2,9 @@
 *.iws
 *.iml
 target
+.project
+.settings/
+.classpath
+target/
+test-output/
+
