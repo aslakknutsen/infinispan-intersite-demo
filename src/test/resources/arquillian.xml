@@ -15,7 +15,6 @@
             	<dependency>org.apache.tomcat:jasper:6.0.29</dependency>
             </dependencies>
         </container>
-
         <container qualifier="active-1">
             <configuration>
                 <property name="tomcatHome">target/tomcat-embedded-6-active-1</property>

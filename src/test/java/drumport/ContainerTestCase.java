@@ -22,13 +22,14 @@ import junit.framework.Assert;
 
 import org.infinispan.Cache;
 import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.DeploymentTarget;
-import org.jboss.arquillian.api.Target;
+import org.jboss.arquillian.api.OperateOnDeployment;
+import org.jboss.arquillian.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.dependencies.Dependencies;
+import org.jboss.shrinkwrap.resolver.api.DependencyResolvers;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenDependencyResolver;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -39,19 +40,19 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class ContainerTestCase {
 
-   @Deployment(name = "standby-dep", testable = false) @Target("standby")
+   @Deployment(testable = false) @TargetsContainer("standby")
    public static WebArchive createStandbyDeployment()
    {
       return createStandByArchive();
    }
    
-   @Deployment(name = "active-1-dep") @Target("active-1")
+   @Deployment(name = "active-1-dep") @TargetsContainer("active-1")
    public static WebArchive createTestDeployment()
    {
       return createActiveArchive("active1");
    }
 
-   @Deployment(name = "active-2-dep") @Target("active-2")
+   @Deployment(name = "active-2-dep") @TargetsContainer("active-2")
    public static WebArchive createTestDeployment2()
    {
       return createActiveArchive("active2");
@@ -61,15 +62,16 @@ public class ContainerTestCase {
    {
       return ShrinkWrap.create(WebArchive.class, "standby.war")
             .addPackage("drumport.standby")
-            .addLibraries(
-                  Dependencies.artifact("org.infinispan:infinispan-core:4.2.0.BETA1")
+            .addAsLibraries(
+                  DependencyResolvers.use(MavenDependencyResolver.class)
+                              .artifact("org.infinispan:infinispan-core:4.2.0.BETA1")
                               .artifact("org.infinispan:infinispan-cachestore-remote:4.2.0.BETA1")
                               .artifact("org.infinispan:infinispan-server-hotrod:4.2.0.BETA1")
                               .artifact("org.jboss.weld.servlet:weld-servlet:1.1.0-SNAPSHOT")
-                              .artifact("log4j:log4j:1.2.16").resolve())
-            .addWebResource(EmptyAsset.INSTANCE, "beans.xml")
-            .addResource("standby-in-container-context.xml", "/META-INF/context.xml")
-            .addResource("standby-infinispan.xml", "/WEB-INF/classes/standby-infinispan.xml")
+                              .artifact("log4j:log4j:1.2.16").resolveAsFiles())
+            .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml")
+            .addAsWebResource("standby-in-container-context.xml", "/META-INF/context.xml")
+            .addAsWebResource("standby-infinispan.xml", "/WEB-INF/classes/standby-infinispan.xml")
             .setWebXML("standby-in-container-web.xml");
    }
 
@@ -77,14 +79,15 @@ public class ContainerTestCase {
    {
       return ShrinkWrap.create(WebArchive.class, name + ".war")
             .addPackage("drumport.client")
-            .addLibraries(
-                  Dependencies.artifact("org.infinispan:infinispan-core:4.2.0.BETA1")
+            .addAsLibraries(
+                  DependencyResolvers.use(MavenDependencyResolver.class)
+                              .artifact("org.infinispan:infinispan-core:4.2.0.BETA1")
                               .artifact("org.infinispan:infinispan-cachestore-remote:4.2.0.BETA1")
-                              .artifact("org.jboss.weld.servlet:weld-servlet:1.1.0-SNAPSHOT").resolve())
-            .addWebResource(EmptyAsset.INSTANCE, "beans.xml")
-            .addResource("in-container-context.xml", "/META-INF/context.xml")
-            .addResource("infinispan.xml", "/WEB-INF/classes/infinispan.xml")
-            .addResource("hotrod-client.properties", "/WEB-INF/classes/hotrod-client.properties")
+                              .artifact("org.jboss.weld.servlet:weld-servlet:1.1.0-SNAPSHOT").resolveAsFiles())
+            .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml")
+            .addAsWebResource("in-container-context.xml", "/META-INF/context.xml")
+            .addAsWebResource("infinispan.xml", "/WEB-INF/classes/infinispan.xml")
+            .addAsWebResource("hotrod-client.properties", "/WEB-INF/classes/hotrod-client.properties")
             .setWebXML("in-container-web.xml");
    }
 
@@ -92,14 +95,14 @@ public class ContainerTestCase {
    @Inject
    private Cache<String, Integer> cache;
    
-   @Test @DeploymentTarget("active-1-dep")
+   @Test @OperateOnDeployment("active-1-dep")
    public void callActive1() throws Exception 
    {
       int count = incrementCache(cache);
       Assert.assertEquals(1, count);
    }
    
-   @Test @DeploymentTarget("active-2-dep")
+   @Test @OperateOnDeployment("active-2-dep")
    public void callActive2() throws Exception 
    {
       int count = incrementCache(cache);
